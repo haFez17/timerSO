@@ -1,0 +1,280 @@
+Index: pythonProject/Timer/TimerSO.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>import sys\r\nimport time\r\nimport threading\r\nfrom PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QPushButton, QLabel, QTabWidget, QMessageBox\r\nfrom PyQt6.QtCore import QTimer
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/pythonProject/Timer/TimerSO.py b/pythonProject/Timer/TimerSO.py
+--- a/pythonProject/Timer/TimerSO.py	(revision 249c3dce8ca7d8766864e3c143aa9b3891dd7c52)
++++ b/pythonProject/Timer/TimerSO.py	(date 1740153601403)
+@@ -1,5 +1,7 @@
++from PyQt6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QTabWidget,
++                             QLabel, QPushButton, QTimeEdit, QDateTimeEdit, QMessageBox)
++from PyQt6.QtCore import QTimer, QTime, QDateTime
++from PyQt6.QtGui import QPalette, QColor
+ import sys
+ import time
+ import threading
+-from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QPushButton, QLabel, QTabWidget, QMessageBox
+-from PyQt6.QtCore import QTimer
+\ No newline at end of file
+Index: pythonProject/Timer/timer_app.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>from TimerSO import *\r\n\r\n\r\nclass TimerFunction:\r\n    def __init__(self, app):\r\n        self.app = app\r\n        self.running = False\r\n        self.time_left = 10\r\n        self.timer_thread = None\r\n\r\n    def _run_timer(self):\r\n        while self.running and self.time_left > 0:\r\n            time.sleep(1)\r\n            self.time_left -= 1\r\n            self.app.timer_label.setText(f\"Оставшееся время: {self.time_left} сек\")\r\n\r\n        if self.time_left == 0:\r\n            self.app.show_timer_finished()\r\n\r\n    def start_timer(self):\r\n        if not self.running:\r\n            self.running = True\r\n            self.timer_thread = threading.Thread(target=self._run_timer)\r\n            self.timer_thread.start()\r\n\r\n    def stop_timer(self):\r\n        self.running = False\r\n\r\n\r\nclass AlarmFunction:\r\n    def __init__(self, app):\r\n        self.app = app\r\n        self.alarm_set = False\r\n        self.alarm_time = 10\r\n\r\n    def set_alarm(self):\r\n        if not self.alarm_set:\r\n            self.alarm_set = True\r\n            self.app.alarm_label.setText(f\"Будильник установлен через {self.alarm_time} сек\")\r\n            threading.Timer(self.alarm_time, self.trigger_alarm).start()\r\n\r\n    def trigger_alarm(self):\r\n        self.app.show_alarm_popup()\r\n        self.alarm_set = False\r\n\r\n    def snooze_alarm(self):\r\n        self.alarm_set = True\r\n        self.alarm_time = 15\r\n        self.app.alarm_label.setText(f\"Будильник отложен на 15 минут\")\r\n        threading.Timer(self.alarm_time, self.trigger_alarm).start()\r\n\r\n\r\nclass TimerApp(QWidget):\r\n    def __init__(self):\r\n        super().__init__()\r\n\r\n        self.setWindowTitle(\"Таймер и Будильник\")\r\n        self.setGeometry(100, 100, 400, 300)\r\n\r\n        self.layout = QVBoxLayout()\r\n        self.tabs = QTabWidget()\r\n\r\n        # Вкладка Таймер\r\n        self.timer_tab = QWidget()\r\n        self.timer_layout = QVBoxLayout()\r\n        self.timer_label = QLabel(\"Оставшееся время: 0 сек\")\r\n        self.timer_start_btn = QPushButton(\"Старт Таймера\")\r\n        self.timer_stop_btn = QPushButton(\"Остановить Таймер\")\r\n\r\n        self.timer_layout.addWidget(self.timer_label)\r\n        self.timer_layout.addWidget(self.timer_start_btn)\r\n        self.timer_layout.addWidget(self.timer_stop_btn)\r\n        self.timer_tab.setLayout(self.timer_layout)\r\n\r\n        # Вкладка Будильник\r\n        self.alarm_tab = QWidget()\r\n        self.alarm_layout = QVBoxLayout()\r\n        self.alarm_label = QLabel(\"Будильник: Не установлен\")\r\n        self.alarm_set_btn = QPushButton(\"Установить Будильник на 10 сек\")\r\n\r\n        self.alarm_layout.addWidget(self.alarm_label)\r\n        self.alarm_layout.addWidget(self.alarm_set_btn)\r\n        self.alarm_tab.setLayout(self.alarm_layout)\r\n\r\n        # Добавляем вкладки\r\n        self.tabs.addTab(self.timer_tab, \"Таймер\")\r\n        self.tabs.addTab(self.alarm_tab, \"Будильник\")\r\n\r\n        self.layout.addWidget(self.tabs)\r\n        self.setLayout(self.layout)\r\n\r\n        # Логика таймера и будильника\r\n        self.timer_function = TimerFunction(self)\r\n        self.alarm_function = AlarmFunction(self)\r\n\r\n        # Подключаем кнопки к функциям\r\n        self.timer_start_btn.clicked.connect(self.timer_function.start_timer)\r\n        self.timer_stop_btn.clicked.connect(self.timer_function.stop_timer)\r\n        self.alarm_set_btn.clicked.connect(self.alarm_function.set_alarm)\r\n\r\n    def show_timer_finished(self):\r\n        QMessageBox.information(self, \"Таймер\", \"Таймер завершился!\")\r\n\r\n    def show_alarm_popup(self):\r\n        msg_box = QMessageBox(self)\r\n        msg_box.setWindowTitle(\"Будильник!\")\r\n        msg_box.setText(\"Будильник прозвенел!\")\r\n        msg_box.addButton(\"Остановить\", QMessageBox.ButtonRole.AcceptRole)\r\n        snooze_btn = msg_box.addButton(\"Попозже (+15 минут)\", QMessageBox.ButtonRole.ActionRole)\r\n\r\n        msg_box.exec()\r\n\r\n        if msg_box.clickedButton() == snooze_btn:\r\n            self.alarm_function.snooze_alarm()\r\n\r\n\r\nif __name__ == \"__main__\":\r\n    app = QApplication(sys.argv)\r\n    window = TimerApp()\r\n    window.show()\r\n    sys.exit(app.exec())\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/pythonProject/Timer/timer_app.py b/pythonProject/Timer/timer_app.py
+--- a/pythonProject/Timer/timer_app.py	(revision 249c3dce8ca7d8766864e3c143aa9b3891dd7c52)
++++ b/pythonProject/Timer/timer_app.py	(date 1740153601410)
+@@ -5,49 +5,54 @@
+     def __init__(self, app):
+         self.app = app
+         self.running = False
+-        self.time_left = 10
+-        self.timer_thread = None
++        self.time_left = 0
++        self.timer = QTimer()
++        self.timer.timeout.connect(self.update_timer)
+ 
+-    def _run_timer(self):
+-        while self.running and self.time_left > 0:
+-            time.sleep(1)
++    def start_timer(self):
++        if not self.running:
++            self.running = True
++            time = self.app.timer_input.time()
++            self.time_left = time.hour() * 3600 + time.minute() * 60 + time.second()
++            self.timer.start(1000)
++
++    def update_timer(self):
++        if self.time_left > 0:
+             self.time_left -= 1
+             self.app.timer_label.setText(f"Оставшееся время: {self.time_left} сек")
+-
+-        if self.time_left == 0:
++        else:
++            self.timer.stop()
++            self.running = False
+             self.app.show_timer_finished()
+ 
+-    def start_timer(self):
+-        if not self.running:
+-            self.running = True
+-            self.timer_thread = threading.Thread(target=self._run_timer)
+-            self.timer_thread.start()
+-
+     def stop_timer(self):
+         self.running = False
++        self.timer.stop()
+ 
+ 
+ class AlarmFunction:
+     def __init__(self, app):
+         self.app = app
+-        self.alarm_set = False
+-        self.alarm_time = 10
++        self.alarm_timer = QTimer()
++        self.alarm_timer.timeout.connect(self.check_alarm)
++        self.alarm_timer.start(1000)
++        self.alarm_time = None
+ 
+     def set_alarm(self):
+-        if not self.alarm_set:
+-            self.alarm_set = True
+-            self.app.alarm_label.setText(f"Будильник установлен через {self.alarm_time} сек")
+-            threading.Timer(self.alarm_time, self.trigger_alarm).start()
++        self.alarm_time = self.app.alarm_input.dateTime()
++        self.app.alarm_label.setText(f"Будильник установлен на {self.alarm_time.toString()}")
++
++    def check_alarm(self):
++        if self.alarm_time and QDateTime.currentDateTime() >= self.alarm_time:
++            self.trigger_alarm()
++            self.alarm_time = None
+ 
+     def trigger_alarm(self):
+         self.app.show_alarm_popup()
+-        self.alarm_set = False
+ 
+     def snooze_alarm(self):
+-        self.alarm_set = True
+-        self.alarm_time = 15
++        self.alarm_time = QDateTime.currentDateTime().addSecs(900)
+         self.app.alarm_label.setText(f"Будильник отложен на 15 минут")
+-        threading.Timer(self.alarm_time, self.trigger_alarm).start()
+ 
+ 
+ class TimerApp(QWidget):
+@@ -56,6 +61,7 @@
+ 
+         self.setWindowTitle("Таймер и Будильник")
+         self.setGeometry(100, 100, 400, 300)
++        self.setStyleSheet("background-color: #2E2E2E; color: white;")  # Основной стиль
+ 
+         self.layout = QVBoxLayout()
+         self.tabs = QTabWidget()
+@@ -64,10 +70,14 @@
+         self.timer_tab = QWidget()
+         self.timer_layout = QVBoxLayout()
+         self.timer_label = QLabel("Оставшееся время: 0 сек")
++        self.timer_label.setStyleSheet("font-size: 16px;")
++        self.timer_input = QTimeEdit()
++        self.timer_input.setDisplayFormat("hh:mm:ss")
+         self.timer_start_btn = QPushButton("Старт Таймера")
+         self.timer_stop_btn = QPushButton("Остановить Таймер")
+ 
+         self.timer_layout.addWidget(self.timer_label)
++        self.timer_layout.addWidget(self.timer_input)
+         self.timer_layout.addWidget(self.timer_start_btn)
+         self.timer_layout.addWidget(self.timer_stop_btn)
+         self.timer_tab.setLayout(self.timer_layout)
+@@ -76,9 +86,13 @@
+         self.alarm_tab = QWidget()
+         self.alarm_layout = QVBoxLayout()
+         self.alarm_label = QLabel("Будильник: Не установлен")
+-        self.alarm_set_btn = QPushButton("Установить Будильник на 10 сек")
++        self.alarm_label.setStyleSheet("font-size: 16px;")
++        self.alarm_input = QDateTimeEdit()
++        self.alarm_input.setDisplayFormat("dd.MM.yyyy hh:mm:ss")
++        self.alarm_set_btn = QPushButton("Установить Будильник")
+ 
+         self.alarm_layout.addWidget(self.alarm_label)
++        self.alarm_layout.addWidget(self.alarm_input)
+         self.alarm_layout.addWidget(self.alarm_set_btn)
+         self.alarm_tab.setLayout(self.alarm_layout)
+ 
+Index: .idea/misc.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/misc.xml b/.idea/misc.xml
+new file mode 100644
+--- /dev/null	(date 1740152364472)
++++ b/.idea/misc.xml	(date 1740152364472)
+@@ -0,0 +1,7 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<project version="4">
++  <component name="Black">
++    <option name="sdkName" value="Python 3.10 (pythonProject) (2)" />
++  </component>
++  <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.10 (pythonProject) (2)" project-jdk-type="Python SDK" />
++</project>
+\ No newline at end of file
+Index: .idea/vcs.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/vcs.xml b/.idea/vcs.xml
+new file mode 100644
+--- /dev/null	(date 1740152364465)
++++ b/.idea/vcs.xml	(date 1740152364465)
+@@ -0,0 +1,6 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<project version="4">
++  <component name="VcsDirectoryMappings">
++    <mapping directory="" vcs="Git" />
++  </component>
++</project>
+\ No newline at end of file
+Index: .idea/material_theme_project_new.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/material_theme_project_new.xml b/.idea/material_theme_project_new.xml
+new file mode 100644
+--- /dev/null	(date 1740152364486)
++++ b/.idea/material_theme_project_new.xml	(date 1740152364486)
+@@ -0,0 +1,12 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<project version="4">
++  <component name="MaterialThemeProjectNewConfig">
++    <option name="metadata">
++      <MTProjectMetadataState>
++        <option name="migrated" value="true" />
++        <option name="pristineConfig" value="false" />
++        <option name="userId" value="-6d5370af:194efc4846b:-7ffe" />
++      </MTProjectMetadataState>
++    </option>
++  </component>
++</project>
+\ No newline at end of file
+Index: .idea/.gitignore
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/.gitignore b/.idea/.gitignore
+new file mode 100644
+--- /dev/null	(date 1740152364424)
++++ b/.idea/.gitignore	(date 1740152364424)
+@@ -0,0 +1,8 @@
++# Default ignored files
++/shelf/
++/workspace.xml
++# Editor-based HTTP Client requests
++/httpRequests/
++# Datasource local storage ignored files
++/dataSources/
++/dataSources.local.xml
+Index: .idea/inspectionProfiles/profiles_settings.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/inspectionProfiles/profiles_settings.xml b/.idea/inspectionProfiles/profiles_settings.xml
+new file mode 100644
+--- /dev/null	(date 1740152364438)
++++ b/.idea/inspectionProfiles/profiles_settings.xml	(date 1740152364438)
+@@ -0,0 +1,6 @@
++<component name="InspectionProjectProfileManager">
++  <settings>
++    <option name="USE_PROJECT_PROFILE" value="false" />
++    <version value="1.0" />
++  </settings>
++</component>
+\ No newline at end of file
+Index: .idea/timerSO.iml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/timerSO.iml b/.idea/timerSO.iml
+new file mode 100644
+--- /dev/null	(date 1740152364458)
++++ b/.idea/timerSO.iml	(date 1740152364458)
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<module type="PYTHON_MODULE" version="4">
++  <component name="NewModuleRootManager">
++    <content url="file://$MODULE_DIR$">
++      <excludeFolder url="file://$MODULE_DIR$/pythonProject/.venv" />
++    </content>
++    <orderEntry type="inheritedJdk" />
++    <orderEntry type="sourceFolder" forTests="false" />
++  </component>
++</module>
+\ No newline at end of file
+Index: .idea/modules.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/modules.xml b/.idea/modules.xml
+new file mode 100644
+--- /dev/null	(date 1740152364445)
++++ b/.idea/modules.xml	(date 1740152364445)
+@@ -0,0 +1,8 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<project version="4">
++  <component name="ProjectModuleManager">
++    <modules>
++      <module fileurl="file://$PROJECT_DIR$/.idea/timerSO.iml" filepath="$PROJECT_DIR$/.idea/timerSO.iml" />
++    </modules>
++  </component>
++</project>
+\ No newline at end of file
