@@ -125,7 +125,7 @@ class TimerApp(QWidget):
 
     def set_alarm(self):
         if self.alarm_thread and self.alarm_thread.isRunning():
-            return  
+            return
 
         alarm_time = self.alarm_input.dateTime()
         self.alarm_label.setText(f"Будильник установлен на {alarm_time.toString()}")
