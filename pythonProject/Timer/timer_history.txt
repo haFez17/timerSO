@@ -1,0 +1,10 @@
+2025-02-24 16:00:03.459554 - {'start_time': datetime.datetime(2025, 2, 24, 15, 59, 53, 356103), 'duration': 1140, 'status': 'started'}
+2025-02-24 16:00:33.475468 - {'time': datetime.datetime(2025, 2, 24, 16, 0, 15, 345794), 'status': 'paused'}
+2025-02-24 16:00:33.475468 - {'time': datetime.datetime(2025, 2, 24, 16, 0, 18, 98001), 'status': 'stopped'}
+2025-02-24 16:00:33.475468 - {'start_time': datetime.datetime(2025, 2, 24, 16, 0, 25, 957877), 'duration': 59, 'status': 'started'}
+2025-02-24 16:00:33.475468 - {'time': datetime.datetime(2025, 2, 24, 16, 0, 33, 334844), 'status': 'stopped'}
+2025-02-24 16:04:40.974286 - {'start_time': datetime.datetime(2025, 2, 24, 16, 4, 19, 54347), 'duration': 359, 'status': 'started'}
+2025-02-24 16:04:40.974286 - {'time': datetime.datetime(2025, 2, 24, 16, 4, 33, 288721), 'status': 'stopped'}
+2025-02-24 16:15:06.215313 - {'start_time': datetime.datetime(2025, 2, 24, 16, 14, 42, 884620), 'duration': 600, 'status': 'started'}
+2025-02-24 16:15:06.215313 - {'time': datetime.datetime(2025, 2, 24, 16, 15, 3, 789916), 'status': 'stopped'}
+2025-02-24 16:15:06.215313 - {'start_time': datetime.datetime(2025, 2, 24, 16, 15, 4, 665374), 'duration': 3, 'status': 'started'}
