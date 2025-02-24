@@ -13,19 +13,16 @@ class TimerApp:
         self.minutes = tk.StringVar(value="00")
         self.seconds = tk.StringVar(value="00")
         self.is_running = False
-        self.is_paused = False
-        self.pause_event = threading.Event()
+        self.is_paused = False # булево
+        self.pause_event = threading.Event() # для потоков
         self.stop_event = threading.Event()
         self.timer_thread = None
         self.remaining_time = timedelta(seconds=0)
 
-        # Переменная для заголовка
         self.title_text = tk.StringVar(value="СУПЕР ТАЙМЕР")
 
-        # Переменные для истории таймеров
         self.timer_history = []
 
-        # Переменные для пресетов таймера
         self.presets = {
             "Помодоро": {"hours": "00", "minutes": "25", "seconds": "00"},
             "Короткий перерыв": {"hours": "00", "minutes": "05", "seconds": "00"},
@@ -44,7 +41,6 @@ class TimerApp:
         main_frame = tk.Frame(self.root, bg="#2E3B4E", padx=20, pady=20)
         main_frame.pack(fill=tk.BOTH, expand=True)
 
-        # Заголовок
         self.title_label = tk.Label(main_frame, textvariable=self.title_text, font=("Helvetica", 20, "bold"),
                                     bg="#2E3B4E", fg="#FFFFFF")
         self.title_label.pack(pady=10)
@@ -120,8 +116,9 @@ class TimerApp:
                                "borderwidth": 0, "highlightthickness": 0, "pady": 3}
 
         for i, (name, values) in enumerate(self.presets.items()):
-            btn = tk.Button(presets_buttons_frame, text=name, bg="#3E4B5E", fg="white",
-                            command=lambda preset=values.copy(), name=name: self.apply_preset(preset, name),
+            preset_name = name  # Сохраняем имя в локальной переменной
+            btn = tk.Button(presets_buttons_frame, text=preset_name, bg="#3E4B5E", fg="white",
+                            command=lambda preset=values.copy(), name=preset_name: self.apply_preset(preset, name),
                             **preset_button_style)
 
             btn.grid(row=i // 2, column=i % 2, padx=5, pady=3, sticky=tk.W + tk.E)
@@ -282,20 +279,20 @@ class TimerApp:
             if self.stop_event.is_set():
                 break
 
-            # Обновление оставшегося времени
-            self.remaining_time -= timedelta(seconds=1)
-
             # Форматирование времени
             hours, remainder = divmod(int(self.remaining_time.total_seconds()), 3600)
             minutes, seconds = divmod(remainder, 60)
             time_str = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+            progress_value = 100 - self.remaining_time.total_seconds() / total_seconds * 100
 
             # Обновление интерфейса в основном потоке
-            self.root.after(0, lambda: self.update_display(time_str,
-                                                           100 - self.remaining_time.total_seconds() / total_seconds * 100))
+            self.root.after(0, self.update_display, time_str, progress_value)
 
             # Пауза потока
             time.sleep(1)
+
+            # Обновление оставшегося времени ПОСЛЕ паузы
+            self.remaining_time -= timedelta(seconds=1)
 
         # Если таймер не остановлен принудительно, значит он завершился естественным путем
         if not self.stop_event.is_set():
