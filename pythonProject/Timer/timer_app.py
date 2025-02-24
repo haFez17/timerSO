@@ -1,58 +1,45 @@
 from TimerSO import *
 
 
-class TimerFunction:
-    def __init__(self, app):
-        self.app = app
-        self.running = False
-        self.time_left = 0
-        self.timer = QTimer()
-        self.timer.timeout.connect(self.update_timer)
+class TimerThread(QThread):
+    update_signal = pyqtSignal(int)
+    finished_signal = pyqtSignal()
 
-    def start_timer(self):
-        if not self.running:
-            self.running = True
-            time = self.app.timer_input.time()
-            self.time_left = time.hour() * 3600 + time.minute() * 60 + time.second()
-            self.timer.start(1000)
+    def __init__(self, total_seconds):
+        super().__init__()
+        self.time_left = total_seconds
+        self.running = True
 
-    def update_timer(self):
-        if self.time_left > 0:
+    def run(self):
+        while self.time_left > 0 and self.running:
+            self.sleep(1)
             self.time_left -= 1
-            self.app.timer_label.setText(f"Оставшееся время: {self.time_left} сек")
-        else:
-            self.timer.stop()
-            self.running = False
-            self.app.show_timer_finished()
+            self.update_signal.emit(self.time_left)
 
-    def stop_timer(self):
+        if self.running:
+            self.finished_signal.emit()
+
+    def stop(self):
         self.running = False
-        self.timer.stop()
 
 
-class AlarmFunction:
-    def __init__(self, app):
-        self.app = app
-        self.alarm_timer = QTimer()
-        self.alarm_timer.timeout.connect(self.check_alarm)
-        self.alarm_timer.start(1000)
-        self.alarm_time = None
+class AlarmThread(QThread):
+    alarm_signal = pyqtSignal()
 
-    def set_alarm(self):
-        self.alarm_time = self.app.alarm_input.dateTime()
-        self.app.alarm_label.setText(f"Будильник установлен на {self.alarm_time.toString()}")
+    def __init__(self, alarm_time):
+        super().__init__()
+        self.alarm_time = alarm_time
+        self.running = True
 
-    def check_alarm(self):
-        if self.alarm_time and QDateTime.currentDateTime() >= self.alarm_time:
-            self.trigger_alarm()
-            self.alarm_time = None
+    def run(self):
+        while self.running:
+            if QDateTime.currentDateTime() >= self.alarm_time:
+                self.alarm_signal.emit()
+                break
+            self.sleep(1)
 
-    def trigger_alarm(self):
-        self.app.show_alarm_popup()
-
-    def snooze_alarm(self):
-        self.alarm_time = QDateTime.currentDateTime().addSecs(900)
-        self.app.alarm_label.setText(f"Будильник отложен на 15 минут")
+    def stop(self):
+        self.running = False
 
 
 class TimerApp(QWidget):
@@ -61,12 +48,12 @@ class TimerApp(QWidget):
 
         self.setWindowTitle("Таймер и Будильник")
         self.setGeometry(100, 100, 400, 300)
-        self.setStyleSheet("background-color: #2E2E2E; color: white;")  # Основной стиль
+        self.setStyleSheet("background-color: #2E2E2E; color: white;")
 
         self.layout = QVBoxLayout()
         self.tabs = QTabWidget()
 
-        # Вкладка Таймер
+        # Таймер
         self.timer_tab = QWidget()
         self.timer_layout = QVBoxLayout()
         self.timer_label = QLabel("Оставшееся время: 0 сек")
@@ -82,7 +69,7 @@ class TimerApp(QWidget):
         self.timer_layout.addWidget(self.timer_stop_btn)
         self.timer_tab.setLayout(self.timer_layout)
 
-        # Вкладка Будильник
+        # Будильник
         self.alarm_tab = QWidget()
         self.alarm_layout = QVBoxLayout()
         self.alarm_label = QLabel("Будильник: Не установлен")
@@ -96,7 +83,7 @@ class TimerApp(QWidget):
         self.alarm_layout.addWidget(self.alarm_set_btn)
         self.alarm_tab.setLayout(self.alarm_layout)
 
-        # Добавляем вкладки
+        # Вкладки
         self.tabs.addTab(self.timer_tab, "Таймер")
         self.tabs.addTab(self.alarm_tab, "Будильник")
 
@@ -104,13 +91,48 @@ class TimerApp(QWidget):
         self.setLayout(self.layout)
 
         # Логика таймера и будильника
-        self.timer_function = TimerFunction(self)
-        self.alarm_function = AlarmFunction(self)
+        self.timer_thread = None
+        self.alarm_thread = None
 
-        # Подключаем кнопки к функциям
-        self.timer_start_btn.clicked.connect(self.timer_function.start_timer)
-        self.timer_stop_btn.clicked.connect(self.timer_function.stop_timer)
-        self.alarm_set_btn.clicked.connect(self.alarm_function.set_alarm)
+        # Подключаем кнопки
+        self.timer_start_btn.clicked.connect(self.start_timer)
+        self.timer_stop_btn.clicked.connect(self.stop_timer)
+        self.alarm_set_btn.clicked.connect(self.set_alarm)
+
+    def start_timer(self):
+        if self.timer_thread and self.timer_thread.isRunning():
+            return
+
+        time = self.timer_input.time()
+        total_seconds = time.hour() * 3600 + time.minute() * 60 + time.second()
+
+        if total_seconds == 0:
+            return
+
+        self.timer_thread = TimerThread(total_seconds)
+        self.timer_thread.update_signal.connect(self.update_timer_label)
+        self.timer_thread.finished_signal.connect(self.show_timer_finished)
+        self.timer_thread.start()
+
+    def update_timer_label(self, time_left):
+        self.timer_label.setText(f"Оставшееся время: {time_left} сек")
+
+    def stop_timer(self):
+        if self.timer_thread:
+            self.timer_thread.stop()
+            self.timer_thread = None
+            self.timer_label.setText("Таймер остановлен")
+
+    def set_alarm(self):
+        if self.alarm_thread and self.alarm_thread.isRunning():
+            return  
+
+        alarm_time = self.alarm_input.dateTime()
+        self.alarm_label.setText(f"Будильник установлен на {alarm_time.toString()}")
+
+        self.alarm_thread = AlarmThread(alarm_time)
+        self.alarm_thread.alarm_signal.connect(self.show_alarm_popup)
+        self.alarm_thread.start()
 
     def show_timer_finished(self):
         QMessageBox.information(self, "Таймер", "Таймер завершился!")
@@ -119,13 +141,21 @@ class TimerApp(QWidget):
         msg_box = QMessageBox(self)
         msg_box.setWindowTitle("Будильник!")
         msg_box.setText("Будильник прозвенел!")
-        msg_box.addButton("Остановить", QMessageBox.ButtonRole.AcceptRole)
+        stop_btn = msg_box.addButton("Остановить", QMessageBox.ButtonRole.AcceptRole)
         snooze_btn = msg_box.addButton("Попозже (+15 минут)", QMessageBox.ButtonRole.ActionRole)
 
         msg_box.exec()
 
         if msg_box.clickedButton() == snooze_btn:
-            self.alarm_function.snooze_alarm()
+            self.snooze_alarm()
+
+    def snooze_alarm(self):
+        if self.alarm_thread:
+            self.alarm_thread.stop()
+
+        new_time = QDateTime.currentDateTime().addSecs(900)
+        self.alarm_input.setDateTime(new_time)
+        self.set_alarm()
 
 
 if __name__ == "__main__":
