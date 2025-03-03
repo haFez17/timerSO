@@ -4,7 +4,7 @@ from tkcalendar import Calendar
 class TimerApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("Таймер и Будильник")
+        self.root.title("Таймер и Будильник от Омара")
         self.root.geometry("500x400")
         self.root.configure(bg="#DEB887")
 
